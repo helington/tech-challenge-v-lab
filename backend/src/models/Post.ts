@@ -8,6 +8,8 @@ import {
   HasManyCountAssociationsMixin
 } from 'sequelize';
 import { sequelize } from '../config/database';
+import Comment from './Comment';
+import User from './User';
 
 interface PostAttributes {
   id: number;
@@ -53,20 +55,17 @@ class Post extends Model<PostAttributes, PostCreationAttributes> implements Post
     likes: Association<Post, any>;
   };
 
-  // Intentionally inefficient method that will cause N+1 queries
+  // Eager loading to query comments with their authors
   public async getCommentsWithAuthors(): Promise<any[]> {
-    const comments = await this.getComments();
-    const commentsWithAuthors = [];
-    
-    // N+1 Query Problem: This will make a separate query for each comment's author
-    for (const comment of comments) {
-      const author = await comment.getAuthor();
-      commentsWithAuthors.push({
-        ...comment.toJSON(),
-        author: author.toJSON()
-      });
-    }
-    
+    const commentsWithAuthors = await this.getComments({
+      include: [
+        {
+          model: User,
+          as: "author"
+        }
+      ]
+    });
+
     return commentsWithAuthors;
   }
 }
