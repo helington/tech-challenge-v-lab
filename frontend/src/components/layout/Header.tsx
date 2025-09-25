@@ -93,7 +93,7 @@ export const Header: React.FC = () => {
             TechBlog
           </Logo>
           
-          <Flex alignItems="center" gap={4}>
+          <Flex alignItems="center">
             <NavLink to="/">Posts</NavLink>
             
             {isAuthenticated ? (

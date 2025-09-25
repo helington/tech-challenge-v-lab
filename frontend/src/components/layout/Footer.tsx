@@ -28,7 +28,7 @@ export const Footer: React.FC = () => {
             flexDirection={['column', 'row']} 
             justifyContent="space-between" 
             alignItems={['flex-start', 'center']}
-            gap={4}
+            // gap={4}
           >
             <Box>
               <Text fontSize="lg" fontWeight="bold" color="white" mb={2}>
@@ -39,7 +39,7 @@ export const Footer: React.FC = () => {
               </Text>
             </Box>
             
-            <Flex gap={6}>
+            <Flex>
               <FooterLink href="#about">About</FooterLink>
               <FooterLink href="#privacy">Privacy</FooterLink>
               <FooterLink href="#terms">Terms</FooterLink>
