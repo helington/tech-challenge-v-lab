@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { register, login, getProfile, updateProfile, refreshToken } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
-import { validateRequest, registerSchema, loginSchema } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
+import { registerSchema, loginSchema, updateProfileSchema } from '../schemas/authSchemas';
 
 const router = Router();
 
@@ -12,6 +13,6 @@ router.post('/refresh', refreshToken)
 
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
-router.put('/profile', authenticateToken, updateProfile);
+router.put('/profile', authenticateToken, validateRequest(updateProfileSchema), updateProfile);
 
 export default router;
