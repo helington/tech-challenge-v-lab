@@ -5,3 +5,7 @@ export const createCommentSchema = Joi.object({
   postId: Joi.number().integer().positive().required(),
   parentId: Joi.number().integer().positive().optional(),
 });
+
+export const updateCommentSchema = Joi.object({
+    content: Joi.string().min(1).max(5000).required(),
+});
