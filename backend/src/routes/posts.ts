@@ -8,7 +8,8 @@ import {
   likePost 
 } from '../controllers/postController';
 import { authenticateToken, optionalAuth } from '../middleware/auth';
-import { validateRequest, createPostSchema, updatePostSchema } from '../middleware/validation';
+import { validateRequest } from '../middleware/validation';
+import { createPostSchema, updatePostSchema } from '../schemas/postSchemas';
 
 const router = Router();
 
