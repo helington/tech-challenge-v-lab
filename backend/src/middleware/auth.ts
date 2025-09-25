@@ -17,6 +17,7 @@ export const authenticateToken = async (
   }
 
   try {
+    console.log(token)
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JWTPayload;
     
     // Verify user still exists

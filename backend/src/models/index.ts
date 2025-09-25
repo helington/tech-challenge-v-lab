@@ -3,6 +3,7 @@ import User from './User';
 import Post from './Post';
 import Comment from './Comment';
 import Like from './Like';
+import RefreshToken from './RefreshToken';
 
 // User associations
 User.hasMany(Post, {
@@ -18,6 +19,11 @@ User.hasMany(Comment, {
 User.hasMany(Like, {
   foreignKey: 'userId',
   as: 'likes',
+});
+
+User.hasMany(RefreshToken, {
+  foreignKey: 'ownerId',
+  as: 'refreshTokens',
 });
 
 // Post associations
@@ -68,12 +74,19 @@ Like.belongsTo(Post, {
   as: 'post',
 });
 
+// Refresh tokens associations
+RefreshToken.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'owner',
+});
+
 export {
   sequelize,
   User,
   Post,
   Comment,
   Like,
+  RefreshToken,
 };
 
 export default {
@@ -82,4 +95,5 @@ export default {
   Post,
   Comment,
   Like,
+  RefreshToken,
 };

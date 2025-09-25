@@ -64,6 +64,14 @@ export interface JWTPayload {
   exp: number;
 }
 
+export interface RefreshToken {
+  id: number;
+  token: string;
+  ownerId: number;
+  createdAt: Date;
+  expiresAt: Date;
+}
+
 export interface S3UploadResult {
   Location: string;
   ETag: string;

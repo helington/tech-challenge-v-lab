@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { sequelize } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
@@ -40,6 +41,9 @@ app.get('/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+
+// Cookie handling middleware
+app.use(cookieParser());
 
 // API Routes
 app.use('/api/auth', authRoutes);
