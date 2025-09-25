@@ -1,15 +1,27 @@
 version: '3.8'
 
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  aws_access_key:
+    file: ./secrets/aws_access_key.txt
+  aws_secret_key:
+    file: ./secrets/aws_secret_key.txt
+
 services:
   postgres:
     image: postgres:15-alpine
     container_name: tech-challenge-db
+    secrets:
+      - db_password
     environment:
       POSTGRES_DB: tech_challenge_blog
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password123
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -20,45 +32,51 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: tech-challenge-backend
+    secrets:
+      - db_password
+      - jwt_secret
+      - aws_access_key
+      - aws_secret_key
     environment:
       NODE_ENV: development
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: tech_challenge_blog
       DB_USER: admin
-      DB_PASSWORD: password123
-      JWT_SECRET: your-super-secret-jwt-key-here
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
-      AWS_REGION: ${AWS_REGION:-us-east-1}
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 86400
+      AWS_ACCESS_KEY_ID_FILE: /run/secrets/aws_access_key
+      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_key
+      AWS_S3_BUCKET: tech-challenge-blog-vlab-helington
+      AWS_REGION: sa-east-1
     ports:
       - "3001:3001"
     depends_on:
       - postgres
     volumes:
       - ./backend:/app
-      - /app/node_modules
     networks:
       - tech-challenge-network
     # Intentional issue: missing restart policy
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: tech-challenge-frontend
-    environment:
-      REACT_APP_API_URL: http://localhost:3001
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    networks:
-      - tech-challenge-network
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: tech-challenge-frontend
+  #   environment:
+  #     REACT_APP_API_URL: http://localhost:3001
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #   networks:
+  #     - tech-challenge-network
 
 volumes:
   postgres_data:
