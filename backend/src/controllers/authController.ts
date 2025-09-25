@@ -1,12 +1,17 @@
 import { Request, Response } from "express";
 import { Op } from "sequelize";
-import { Post, User } from "../models";
+import { Post, RefreshToken, User } from "../models";
 import {
   AuthenticatedRequest,
   CreateUserRequest,
   LoginRequest,
 } from "../types";
-import { generateToken } from "../utils/jwt";
+import { generateToken, verityRefreshTokenExpiration } from "../utils/jwt";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const JWT_REFRESH_EXPIRES_IN = parseInt(process.env.JWT_REFRESH_EXPIRES_IN as string);
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -48,11 +53,23 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       username: user.username,
     });
 
-    res.status(201).json({
-      message: "User created successfully",
-      user: user.toJSON(),
-      token,
+    // Generate refresh token
+    const refreshToken = await RefreshToken.create({
+      ownerId: user.id,
+      expiresAt: new Date(Date.now() + JWT_REFRESH_EXPIRES_IN * 1000),
     });
+
+    res
+      .status(201)
+      .cookie("refreshToken", refreshToken.token, {
+        httpOnly: true,
+        sameSite: 'strict',
+      })
+      .json({
+        message: "User created successfully",
+        user: user.toJSON(),
+        token,
+      });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -88,11 +105,23 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       username: user.username,
     });
 
-    res.status(200).json({
-      message: "Login successful",
-      user: user.toJSON(),
-      token,
+    // Generate refresh token
+    const refreshToken = await RefreshToken.create({
+      ownerId: user.id,
+      expiresAt: new Date(Date.now() + JWT_REFRESH_EXPIRES_IN * 1000),
     });
+
+    res
+      .cookie("refreshToken", refreshToken.token, {
+        httpOnly: true,
+        sameSite: 'strict',
+      })
+      .status(200)
+      .json({
+        message: "Login successful",
+        user: user.toJSON(),
+        token,
+      });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -166,3 +195,64 @@ export const updateProfile = async (
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const refreshToken = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if(!refreshToken) {
+    res.status(401).json({ error: "Access Denied. No refresh token provided."});
+  }
+
+  try {
+    const validRefreshToken = await RefreshToken.findOne({
+      where: {
+        token: refreshToken
+      }
+    });
+
+    if (!validRefreshToken) {
+      res.status(400).json({ error: "Invalid refresh token!" });
+      return;
+    }
+
+    if (verityRefreshTokenExpiration(validRefreshToken)) {
+      // Delete expired refresh token
+      await validRefreshToken.destroy();
+      res.status(403).json({ error: "Refresh token was expired!" });
+    }
+
+    const owner = await User.findByPk(validRefreshToken.ownerId) as User;
+
+    const accessToken = generateToken({
+      id: owner.id,
+      email: owner.email,
+      username: owner.username
+    });
+
+    const newRefreshToken = await RefreshToken.create({
+      ownerId: owner.id,
+      expiresAt: new Date(Date.now() + JWT_REFRESH_EXPIRES_IN * 1000),
+    });
+
+    // Revoke used refresh token
+    await validRefreshToken.destroy();
+
+    res
+      .cookie("refreshToken", newRefreshToken.token, {
+        httpOnly: true,
+        sameSite: 'strict',
+      })
+      .status(200)
+      .json({
+        message: "Refresh token successful",
+        accessToken,
+      });
+
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+}
