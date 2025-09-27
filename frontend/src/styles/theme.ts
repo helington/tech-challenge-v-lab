@@ -1,4 +1,11 @@
-export const theme = {
+interface Breakpoints extends Array<string> {
+  sm?: string;
+  md?: string;
+  lg?: string;
+  xl?: string;
+}
+
+const theme = {
   colors: {
     white: "#ffffff",
     primary: {
@@ -116,12 +123,16 @@ export const theme = {
     xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   },
-  breakpoints: {
-    sm: '640px',
-    md: '768px',
-    lg: '1024px',
-    xl: '1280px',
-  },
+  breakpoints: ['640px', '768px', '1024px', '1280px']
 };
+
+export const breakpoints = {
+    sm: theme.breakpoints[0],
+    md: theme.breakpoints[1],
+    lg: theme.breakpoints[2],
+    xl: theme.breakpoints[3],
+}
+
+export { theme };
 
 export type Theme = typeof theme;

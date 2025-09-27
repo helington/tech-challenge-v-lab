@@ -13,6 +13,7 @@ import {
   TypographyProps,
   BorderProps
 } from 'styled-system';
+import { breakpoints } from '../../styles/theme';
 
 interface BoxProps extends 
   SpaceProps, 
@@ -43,19 +44,19 @@ export const Container = styled(Box)`
   padding-left: ${({ theme }) => theme.space[4]};
   padding-right: ${({ theme }) => theme.space[4]};
   
-  @media (min-width: ${({ theme }) => theme.breakpoints.sm}) {
+  @media (min-width: ${({ theme }) => breakpoints.sm}) {
     max-width: ${({ theme }) => theme.sizes.container.sm};
   }
   
-  @media (min-width: ${({ theme }) => theme.breakpoints.md}) {
+  @media (min-width: ${({ theme }) => breakpoints.md}) {
     max-width: ${({ theme }) => theme.sizes.container.md};
   }
   
-  @media (min-width: ${({ theme }) => theme.breakpoints.lg}) {
+  @media (min-width: ${({ theme }) => breakpoints.lg}) {
     max-width: ${({ theme }) => theme.sizes.container.lg};
   }
   
-  @media (min-width: ${({ theme }) => theme.breakpoints.xl}) {
+  @media (min-width: ${({ theme }) => breakpoints.xl}) {
     max-width: ${({ theme }) => theme.sizes.container.xl};
   }
 `;
