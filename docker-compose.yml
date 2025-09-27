@@ -59,8 +59,12 @@ services:
       - ./backend:/app
     networks:
       - tech-challenge-network
-    # Intentional issue: missing restart policy
-
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
   # frontend:
   #   build:
   #     context: ./frontend
