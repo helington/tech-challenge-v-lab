@@ -12,7 +12,7 @@ export interface PostQuery {
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC';
   search?: string;
-  tags?: string;
+  tags?: string[];
   authorId?: number;
 }
 

@@ -37,7 +37,7 @@ export const LoginPage: React.FC = () => {
         bg="white" 
         p={8} 
         borderRadius="lg" 
-        boxShadow="md"
+        // boxShadow="md"
       >
         <Heading as="h1" textAlign="center" mb={6}>
           Welcome Back
@@ -45,7 +45,7 @@ export const LoginPage: React.FC = () => {
         
         <Form onSubmit={handleSubmit(onSubmit)}>
           <FormGroup>
-            <Label htmlFor="email">Email</Label>
+            <Label>Email</Label>
             <Input
               id="email"
               type="email"
@@ -63,7 +63,7 @@ export const LoginPage: React.FC = () => {
           </FormGroup>
           
           <FormGroup>
-            <Label htmlFor="password">Password</Label>
+            <Label>Password</Label>
             <Input
               id="password"
               type="password"
@@ -82,7 +82,7 @@ export const LoginPage: React.FC = () => {
           
           <Button 
             type="submit" 
-            width="100%" 
+            // width="100%" 
             isLoading={isLoading}
             isDisabled={isLoading}
           >

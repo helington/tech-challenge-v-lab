@@ -34,10 +34,10 @@ export const usePostsAdvanced = (options?: {
     isLoading,
     error,
     refetch,
-    isFetching
+    isFetching,
   } = useQuery(
     queryKey,
-    () => postService.getPosts({ page, limit, search, tags, authorId }),
+    () => postService.getPosts({ page, limit, search, tags: tags, authorId }),
     {
       enabled,
       staleTime: 5 * 60 * 1000, // 5 minutes
@@ -56,7 +56,7 @@ export const usePostsAdvanced = (options?: {
       onSuccess: (newPost) => {
         // Invalidate and refetch posts
         queryClient.invalidateQueries(['posts']);
-        queryClient.setQueryData(['post', newPost.id], newPost);
+        queryClient.setQueryData(['post', newPost.post.id], newPost);
       },
       onError: (error) => {
         console.error('Error creating post:', error);
@@ -71,7 +71,7 @@ export const usePostsAdvanced = (options?: {
     {
       onSuccess: (updatedPost) => {
         // Update cache
-        queryClient.setQueryData(['post', updatedPost.id], updatedPost);
+        queryClient.setQueryData(['post', updatedPost.post.id], updatedPost);
         queryClient.invalidateQueries(['posts']);
       },
       onError: (error) => {
@@ -122,7 +122,7 @@ export const usePostsAdvanced = (options?: {
               ? {
                   ...post,
                   isLiked: !post.isLiked,
-                  likeCount: post.isLiked ? post.likeCount - 1 : post.likeCount + 1,
+                  likeCount: post.isLiked ? (post.likeCount ?? 0) - 1 : (post.likeCount ?? 0) + 1,
                 }
               : post
           ),
@@ -170,11 +170,11 @@ export const usePostsAdvanced = (options?: {
   }, [likePostMutation, user]);
 
   const canEditPost = useCallback((post: Post) => {
-    return user && (user.id === post.authorId || user.role === 'admin');
+    return user && (user.id === post.authorId);
   }, [user]);
 
   const canDeletePost = useCallback((post: Post) => {
-    return user && (user.id === post.authorId || user.role === 'admin');
+    return user && (user.id === post.authorId);
   }, [user]);
 
   return {
@@ -237,16 +237,16 @@ export const usePost = (postId: number, enabled = true) => {
 
   // Prefetch related posts
   useEffect(() => {
-    if (post?.tags && post.tags.length > 0) {
+    if (post?.post.tags && post.post.tags.length > 0) {
       queryClient.prefetchQuery(
-        ['posts', { tags: post.tags.slice(0, 3) }],
-        () => postService.getPosts({ tags: post.tags.slice(0, 3), limit: 5 }),
+        ['posts', { tags: post.post.tags.slice(0, 3) }],
+        () => postService.getPosts({ tags: post.post.tags?.slice(0, 3), limit: 5 }),
         {
           staleTime: 10 * 60 * 1000, // 10 minutes
         }
       );
     }
-  }, [post?.tags, queryClient]);
+  }, [post?.post.tags, queryClient]);
 
   return {
     post,
@@ -264,7 +264,7 @@ export const useDrafts = () => {
     ['posts', 'drafts', user?.id],
     () => postService.getPosts({ 
       authorId: user?.id, 
-      published: false,
+      // published: false,
       limit: 50 
     }),
     {
