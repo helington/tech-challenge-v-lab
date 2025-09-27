@@ -68,7 +68,7 @@ describe('Auth Controller', () => {
     });
 
     // Intentionally broken test
-    it('should fail - broken JWT test', () => {
+    it('should generate defined token', () => {
       const payload = {
         id: 1,
         email: 'test@example.com',
