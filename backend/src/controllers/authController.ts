@@ -6,7 +6,7 @@ import {
   CreateUserRequest,
   LoginRequest,
 } from "../types";
-import { generateToken, verityRefreshTokenExpiration } from "../utils/jwt";
+import { generateToken, verifyRefreshTokenExpiration } from "../utils/jwt";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -200,38 +200,47 @@ export const refreshToken = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const refreshToken = req.cookies.refreshToken;
-
-  if(!refreshToken) {
-    res.status(401).json({ error: "Access Denied. No refresh token provided."});
-  }
-
+  
   try {
+    const refreshToken = req.cookies.refreshToken;
+  
+    // No token provided in cookies
+    if(!refreshToken) {
+      res.status(401).json({ error: "Access Denied. No refresh token provided."});
+      return
+    }
+
     const validRefreshToken = await RefreshToken.findOne({
       where: {
         token: refreshToken
       }
     });
 
+    // Token doens't exist
     if (!validRefreshToken) {
       res.status(400).json({ error: "Invalid refresh token!" });
       return;
     }
 
-    if (verityRefreshTokenExpiration(validRefreshToken)) {
+    // Token is expired
+    if (verifyRefreshTokenExpiration(validRefreshToken)) {
+
       // Delete expired refresh token
       await validRefreshToken.destroy();
       res.status(403).json({ error: "Refresh token was expired!" });
+      return
     }
 
     const owner = await User.findByPk(validRefreshToken.ownerId) as User;
 
+    // Generate access token
     const accessToken = generateToken({
       id: owner.id,
       email: owner.email,
       username: owner.username
     });
 
+    // Generate refresh token
     const newRefreshToken = await RefreshToken.create({
       ownerId: owner.id,
       expiresAt: new Date(Date.now() + JWT_REFRESH_EXPIRES_IN * 1000),

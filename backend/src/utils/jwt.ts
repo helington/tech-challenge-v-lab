@@ -14,6 +14,6 @@ export const verifyToken = (token: string): JWTPayload => {
   return jwt.verify(token, JWT_SECRET as any) as JWTPayload;
 };
 
-export const verityRefreshTokenExpiration = (refreshToken: RefreshToken) => {
+export const verifyRefreshTokenExpiration = (refreshToken: RefreshToken) => {
     return refreshToken.expiresAt.getTime() < new Date().getTime();
 };
