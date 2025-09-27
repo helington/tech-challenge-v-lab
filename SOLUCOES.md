@@ -232,7 +232,7 @@ export const refreshToken = async (
 
 **Antes**: o sistema estava sem validações de inputs para os endpoints de 'updateComent' e 'updateProfile'
 
-**Depois** implementadas validações para o endpoints citados
+**Depois**: implementadas validações para o endpoints citados
 
 ```javascript
 export const updateProfileSchema = Joi.object({
