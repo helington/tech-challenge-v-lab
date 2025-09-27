@@ -141,5 +141,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+<<<<<<< HEAD
 # Docker secrets file
+=======
+# Secret variables for docker
+>>>>>>> fix/docker
 /secrets
