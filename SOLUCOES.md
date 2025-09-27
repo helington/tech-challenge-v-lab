@@ -6,15 +6,16 @@
 - ✅ **Testes Quebrados**: Corrigidas 2 assertions incorretas
 - ✅ **Segurança**: Implementado Refresh Token e expiração de tokens JWT
 - ✅ **Validações**: Implementadas validações de input robustas
+- ✅ **Docker Inseguro**: Adicionados secrets e health checks
 
 ## 🚀 Performance - Antes vs Depois
 
-### N+1 Query Problem (postController.ts)
+### N+1 Query Problem (postController.ts e Post.ts)
 
 **Antes**: 50 posts = 150+ queries
 
 ```javascript
-// Código problemático encontrado
+// Código problemático em postController.ts
 const posts = await Post.findAndCountAll({
   where: whereClause,
   limit: limitNumber,
@@ -49,9 +50,28 @@ const postsWithCounts = await Promise.all(
 );
 ```
 
+```javascript
+// Código problemático em Post.ts
+public async getCommentsWithAuthors(): Promise<any[]> {
+  const comments = await this.getComments();
+  const commentsWithAuthors = [];
+
+  for (const comment of comments) {
+    const author = await comment.getAuthor();
+    commentsWithAuthors.push({
+      ...comment.toJSON(),
+      author: author.toJSON()
+    });
+  }
+
+  return commentsWithAuthors;
+}
+```
+
 **Depois**: 50 posts = 1 query otimizada
 
 ```javascript
+// Solução implementada em postController.ts
 const userId = req.user?.id ?? -1;
 const posts = await Post.findAll({
   subQuery: false,
@@ -107,6 +127,22 @@ const posts = await Post.findAll({
   ],
   group: ["Post.id", "author.id"],
 });
+```
+
+```javascript
+// Solução implementada em Post.ts
+public async getCommentsWithAuthors(): Promise<any[]> {
+  const commentsWithAuthors = await this.getComments({
+    include: [
+      {
+        model: User,
+        as: "author"
+      }
+    ]
+  });
+
+  return commentsWithAuthors;
+}
 ```
 
 ## 🧪 Testes - Antes vs Depois
@@ -247,3 +283,102 @@ export const updateCommentSchema = Joi.object({
   content: Joi.string().min(1).max(5000).required(),
 });
 ```
+
+## 🐳 Docker
+
+### Docker com configuração insegura (docker-compose.yml)
+
+**Antes**: Havia senhas em texto plano, estava com ausência de health checks, além da ausência de restart policies
+
+```yaml
+backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tech-challenge-backend
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tech_challenge_blog
+      DB_USER: admin
+      DB_PASSWORD: password123
+      JWT_SECRET: your-super-secret-jwt-key-here
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - tech-challenge-network
+```
+
+**Depois**: Implementadas configurações com 'secrets', health checks e restart policies
+
+```yaml
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  aws_access_key:
+    file: ./secrets/aws_access_key.txt
+  aws_secret_key:
+    file: ./secrets/aws_secret_key.txt
+```
+
+```yaml
+backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tech-challenge-backend
+    secrets:
+      - db_password
+      - jwt_secret
+      - aws_access_key
+      - aws_secret_key
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tech_challenge_blog
+      DB_USER: admin
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 86400
+      AWS_ACCESS_KEY_ID_FILE: /run/secrets/aws_access_key
+      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_key
+      AWS_S3_BUCKET: tech-challenge-blog-vlab-helington
+      AWS_REGION: sa-east-1
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+    networks:
+      - tech-challenge-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+```
+
+## 💭 Possíveis melhorias de arquitetura
+
+- **Adição de camadas de abstração**: Observa-se que a camada de Controllers encontra-se um pouco sobrecarregada.
+Essa camada deveria lidar apenas com requisições HTTP.
+Para melhorar a organização, poderia-se adicionar uma camada de Services para concentrar as regras de negócio da aplicação. Além disso, uma camada de Repositories poderia ser criada para gerenciar diretamente a persistência de dados e as consultas ao banco, mantendo o controller mais limpo e focado apenas na orquestração das requisições e respostas.
+
+- **Arquitetura em monolíto modular**: Em vez de organizar as pastas da API por tipo de funcionalidade (ex.: controllers, schemas, routes), poderia-se organizar os módulos por domínio (ex.: post, auth, comment), em que cada módulo conteria suas próprias camadas e funcionalidades agrupadas.
+Essa organização facilita a manutenção do código, além de proporcionar maior clareza e separação de responsabilidades.
