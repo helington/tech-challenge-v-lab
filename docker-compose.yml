@@ -3,12 +3,6 @@ version: '3.8'
 secrets:
   db_password:
     file: ./secrets/db_password.txt
-  jwt_secret:
-    file: ./secrets/jwt_secret.txt
-  aws_access_key:
-    file: ./secrets/aws_access_key.txt
-  aws_secret_key:
-    file: ./secrets/aws_secret_key.txt
 
 services:
   postgres:
@@ -32,23 +26,18 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: tech-challenge-backend
-    secrets:
-      - db_password
-      - jwt_secret
-      - aws_access_key
-      - aws_secret_key
     environment:
       NODE_ENV: development
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: tech_challenge_blog
       DB_USER: admin
-      DB_PASSWORD_FILE: /run/secrets/db_password
-      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET_FILE: ${JWT_SECRET}
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 86400
-      AWS_ACCESS_KEY_ID_FILE: /run/secrets/aws_access_key
-      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_key
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_S3_BUCKET: tech-challenge-blog-vlab-helington
       AWS_REGION: sa-east-1
     ports:
@@ -60,7 +49,7 @@ services:
     networks:
       - tech-challenge-network
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "admin"]
       interval: 30s
       timeout: 10s
       retries: 3
