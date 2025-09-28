@@ -67,7 +67,6 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app
       - /app/node_modules
     networks:
       - tech-challenge-network
