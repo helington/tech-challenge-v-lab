@@ -2,17 +2,17 @@
 
 ## 📊 Resumo das Correções
 
-- ✅ **N+1 Queries**: Implementado eager loading no postController
-- ✅ **Testes Quebrados**: Corrigidas 2 assertions incorretas
+- ✅ **N+1 Queries**: Eager loading implementado no postController e no método Post.getCommentsWithAuthors().
+- ✅ **Testes Quebrados**: Corrigidas as asserções incorretas nos testes de autenticação.
 - ✅ **Segurança**: Implementado Refresh Token e expiração de tokens JWT
 - ✅ **Validações**: Implementadas validações de input robustas
-- ✅ **Docker Inseguro**: Adicionados secrets e health checks
+- ✅ **Docker Inseguro**: Senhas movidas para secrets, health checks adicionados e restart policies configuradas.
 
 ## 🚀 Performance - Antes vs Depois
 
 ### N+1 Query Problem (postController.ts e Post.ts)
 
-**Antes**: 50 posts = 150+ queries
+**Antes**: 50 posts geravam 150+ queries, impactando a performance.
 
 ```javascript
 // Código problemático em postController.ts
@@ -68,7 +68,7 @@ public async getCommentsWithAuthors(): Promise<any[]> {
 }
 ```
 
-**Depois**: 50 posts = 1 query otimizada
+**Depois**: 50 posts resolvidos em uma única query otimizada.
 
 ```javascript
 // Solução implementada em postController.ts
@@ -149,7 +149,7 @@ public async getCommentsWithAuthors(): Promise<any[]> {
 
 ### Asserções incorretas (auth.test.ts)
 
-**Antes**: Teste falhava, pois a asserção estava errada
+**Antes**: Testes falhando devido a asserções incorretas.
 
 ```javascript
 it("should fail - broken test example", async () => {
@@ -165,8 +165,22 @@ it("should fail - broken test example", async () => {
   expect(user.username).toBe("wrongusername");
 });
 ```
+```javascript
+it('should fail - broken JWT test', () => {
+  const payload = {
+    id: 1,
+    email: 'test@example.com',
+    username: 'testuser',
+  };
 
-**Depois**: Teste passando corretamente, com a asserção correta
+  const token = generateToken(payload);
+  
+  // This will fail because we're expecting undefined
+  expect(token).toBeUndefined();
+});
+```
+
+**Depois**: Testes corrigidos e funcionando corretamente.
 
 ```javascript
 it("should create user with correct username", async () => {
@@ -179,6 +193,19 @@ it("should create user with correct username", async () => {
   const user = await User.create(userData);
 
   expect(user.username).toBe("testuser");
+});
+```
+```javascript
+it('should generate defined token', () => {
+  const payload = {
+    id: 1,
+    email: 'test@example.com',
+    username: 'testuser',
+  };
+
+  const token = generateToken(payload);
+  
+  expect(token).toBeDefined();
 });
 ```
 
@@ -264,11 +291,11 @@ export const refreshToken = async (
 
 ## 🔐 Validações
 
-### Refresh token (authSchemas.ts e commentSchemas.ts)
+### Falta de validações de inputs para certos endpoints (authSchemas.ts e commentSchemas.ts)
 
-**Antes**: o sistema estava sem validações de inputs para os endpoints de 'updateComent' e 'updateProfile'
+**Antes**: Ausência de validações de inputs para os endpoints de updateComent e updateProfile.
 
-**Depois**: implementadas validações para o endpoints citados
+**Depois**: implementadas validações para o endpoints citados.
 
 ```javascript
 export const updateProfileSchema = Joi.object({
@@ -288,90 +315,156 @@ export const updateCommentSchema = Joi.object({
 
 ### Docker com configuração insegura (docker-compose.yml)
 
-**Antes**: Havia senhas em texto plano, estava com ausência de health checks, além da ausência de restart policies
+**Antes**: Senhas em texto plano, health check ausente, volumes incorretos e sem restart policies.
 
 ```yaml
-backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: tech-challenge-backend
+postgres:
+  postgres:
+    image: postgres:15-alpine
+    container_name: tech-challenge-db
     environment:
-      NODE_ENV: development
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: tech_challenge_blog
-      DB_USER: admin
-      DB_PASSWORD: password123
-      JWT_SECRET: your-super-secret-jwt-key-here
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
-      AWS_REGION: ${AWS_REGION:-us-east-1}
+      POSTGRES_DB: tech_challenge_blog
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
     ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
+      - "5432:5432"
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - tech-challenge-network
 ```
+```yaml
+backend:
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+  container_name: tech-challenge-backend
+  environment:
+    NODE_ENV: development
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_NAME: tech_challenge_blog
+    DB_USER: admin
+    DB_PASSWORD: password123
+    JWT_SECRET: your-super-secret-jwt-key-here
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+    AWS_REGION: ${AWS_REGION:-us-east-1}
+  ports:
+    - "3001:3001"
+  depends_on:
+    - postgres
+  volumes:
+    - ./backend:/app
+    - /app/node_modules
+  networks:
+    - tech-challenge-network
+```
+```yaml
+frontend:
+  build:
+    context: ./frontend
+    dockerfile: Dockerfile
+  container_name: tech-challenge-frontend
+  environment:
+    REACT_APP_API_URL: http://localhost:3001
+  ports:
+    - "3000:3000"
+  depends_on:
+    - backend
+  volumes:
+    - ./frontend:/app
+    - /app/node_modules
+  networks:
+    - tech-challenge-network
+```
 
-**Depois**: Implementadas configurações com 'secrets', health checks e restart policies
+
+**Depois**:
+- Senha do banco de dados movida para secrets.
+- Utilização das variaveis de ambiente pelo serviço de backend.
+- Health check configurado no Postgres.
+- Restart policies adicionadas em todos os serviços.
+- Volume do frontend corrigido para evitar perda da pasta build.
+
 
 ```yaml
 secrets:
   db_password:
     file: ./secrets/db_password.txt
-  jwt_secret:
-    file: ./secrets/jwt_secret.txt
-  aws_access_key:
-    file: ./secrets/aws_access_key.txt
-  aws_secret_key:
-    file: ./secrets/aws_secret_key.txt
 ```
 
 ```yaml
+postgres:
+  image: postgres:15-alpine
+  container_name: tech-challenge-db
+  secrets:
+    - db_password
+  environment:
+    POSTGRES_DB: tech_challenge_blog
+    POSTGRES_USER: admin
+    POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "pg_isready", "-U", "admin"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+  ports:
+    - "5433:5432"
+  volumes:
+    - postgres_data:/var/lib/postgresql/data
+  networks:
+    - tech-challenge-network
+```
+```yaml
 backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: tech-challenge-backend
-    secrets:
-      - db_password
-      - jwt_secret
-      - aws_access_key
-      - aws_secret_key
-    environment:
-      NODE_ENV: development
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: tech_challenge_blog
-      DB_USER: admin
-      DB_PASSWORD_FILE: /run/secrets/db_password
-      JWT_SECRET_FILE: /run/secrets/jwt_secret
-      JWT_ACCESS_EXPIRES_IN: 15m
-      JWT_REFRESH_EXPIRES_IN: 86400
-      AWS_ACCESS_KEY_ID_FILE: /run/secrets/aws_access_key
-      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_key
-      AWS_S3_BUCKET: tech-challenge-blog-vlab-helington
-      AWS_REGION: sa-east-1
-    ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
-    volumes:
-      - ./backend:/app
-    networks:
-      - tech-challenge-network
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+  container_name: tech-challenge-backend
+  environment:
+    NODE_ENV: development
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_NAME: tech_challenge_blog
+    DB_USER: admin
+    DB_PASSWORD: ${DB_PASSWORD}
+    JWT_SECRET_FILE: ${JWT_SECRET}
+    JWT_ACCESS_EXPIRES_IN: 15m
+    JWT_REFRESH_EXPIRES_IN: 86400
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    AWS_S3_BUCKET: tech-challenge-blog-vlab-helington
+    AWS_REGION: sa-east-1
+  ports:
+    - "3001:3001"
+  depends_on:
+    - postgres
+  volumes:
+    - ./backend:/app
+  networks:
+    - tech-challenge-network
+  restart: on-failure
+```
+```yaml
+frontend:
+  build:
+    context: ./frontend
+    dockerfile: Dockerfile
+  container_name: tech-challenge-frontend
+  environment:
+    REACT_APP_API_URL: http://localhost:3001/api
+  restart: on-failure
+  ports:
+    - "3000:3000"
+  depends_on:
+    - backend
+  volumes:
+    - /app/node_modules
+  networks:
+    - tech-challenge-network
 ```
 
 ## 💭 Possíveis melhorias de arquitetura
